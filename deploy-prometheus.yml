@@ -1,0 +1,63 @@
+- name: Installing Prometheus on hosted machine
+  hosts: localhost
+  become : yes
+  tasks:
+
+    - name: "Download prometheus image"
+      command: "wget https://github.com/prometheus/prometheus/releases/download/v2.8.1/prometheus-2.8.1.linux-amd64.tar.gz"
+
+    - name: "Add  Prometheus user"
+      command: "useradd --no-create-home --shell /bin/false prometheus"
+
+    - name: "Create Prometheus directories"
+      shell: |
+          mkdir -p /etc/prometheus
+          mkdir -p /var/lib/prometheus
+
+    - name: "Change the owner of Prometheus directories"
+      shell: |
+          chown prometheus:prometheus /etc/prometheus
+          chown prometheus:prometheus /var/lib/prometheus
+
+    - name: "Extract Prometheus package "
+      command: "tar -xvzf prometheus-2.8.1.linux-amd64.tar.gz"
+
+    - name: "Rename installation package"
+      command: "mv prometheus-2.8.1.linux-amd64 prometheuspackage"
+
+    - name: "Copy binaries to new folder"
+      shell: |
+          cp prometheuspackage/prometheus /usr/local/bin/
+          cp prometheuspackage/promtool /usr/local/bin/
+
+    - name: "Change the ownership to Prometheus user"
+      shell: |
+          chown prometheus:prometheus /usr/local/bin/prometheus
+          chown prometheus:prometheus /usr/local/bin/promtool
+
+    - name: "Copy “consoles” and “console_libraries” directories from the “prometheuspackage” to “/etc/prometheus folder”"
+      shell: |
+          cp -r prometheuspackage/consoles /etc/prometheus
+          cp -r prometheuspackage/console_libraries /etc/prometheus
+
+    - name: "Change the ownership to Prometheus user"
+      shell: |
+          chown -R prometheus:prometheus /etc/prometheus/consoles
+          chown -R prometheus:prometheus /etc/prometheus/console_libraries
+
+
+    - name: "Copy configuration file to dest"
+      command: "cp prometheus.yml /etc/prometheus/"
+
+    - name: "Change the ownership of file"
+      command: "chown prometheus:prometheus /etc/prometheus/prometheus.yml"
+
+    - name: "Copy Prometheus Service File to dest"
+      command: "cp prometheus.service /etc/systemd/system/"
+
+    - name: "Reload the systemd service"
+      command: "systemctl daemon-reload"
+
+    - name: "Start Prometheus service"
+      command: "systemctl start prometheus"
+
